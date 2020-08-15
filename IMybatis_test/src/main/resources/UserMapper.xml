@@ -1,0 +1,11 @@
+<Mapper namespace="cn.elite.dao.IUserDao">
+    <!--statementId : namespace.id-->
+    <select id="findAll" resultType="cn.elite.pojo.User">
+        select * from user
+    </select>
+
+    <select id="findByCondition" resultType="cn.elite.pojo.User" paramType="cn.elite.pojo.User">
+        select * from user where id = #{id} and username=#{username}
+    </select>
+
+</Mapper>
