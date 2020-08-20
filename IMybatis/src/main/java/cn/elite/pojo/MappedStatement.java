@@ -19,9 +19,21 @@ public class MappedStatement {
      * */
     private String paramType;
     /**
+     * statement类型 select/insert/update/delete
+     */
+    private String sqlCommandType;
+    /**
      * SQL信息
      */
     private String sql;
+
+    public String getSqlCommandType() {
+        return sqlCommandType;
+    }
+
+    public void setSqlCommandType(String sqlCommandType) {
+        this.sqlCommandType = sqlCommandType;
+    }
 
     public String getId() {
         return id;

@@ -20,5 +20,14 @@ public interface Executor {
      * @param <T>
      * @return
      */
-    public <T> List<T> query(Configuration configuration, MappedStatement mappedStatement,Object...params) throws SQLException, Exception;
+    public <T> List<T> query(Configuration configuration, MappedStatement mappedStatement,Object...params) throws Exception;
+    /**
+     * 修改
+     * @param configuration
+     * @param mappedStatement
+     * @param params
+     * @return
+     */
+    int update(Configuration configuration, MappedStatement mappedStatement,Object...params) throws Exception;
+
 }

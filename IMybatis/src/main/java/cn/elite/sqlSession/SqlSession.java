@@ -27,6 +27,33 @@ public interface SqlSession {
     public <T> T selectOne(String statementId,Object...params) throws Exception;
 
     /**
+     * 新增
+     * @param statementId
+     * @param params
+     * @return
+     * @throws Exception
+     */
+    int insert(String statementId,Object...params) throws Exception;
+
+    /**
+     * 新增
+     * @param statementId
+     * @param params
+     * @return
+     * @throws Exception
+     */
+    int update(String statementId,Object...params) throws Exception;
+
+    /**
+     * 新增
+     * @param statementId
+     * @param params
+     * @return
+     * @throws Exception
+     */
+    int delete(String statementId,Object...params) throws Exception;
+
+    /**
      * 获取mapper代理对象
      * @param mapperClass
      * @param <T>

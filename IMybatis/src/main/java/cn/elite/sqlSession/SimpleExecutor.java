@@ -11,7 +11,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @Author: eliteMade
@@ -19,6 +21,17 @@ import java.util.List;
  * @Version: 1.0
  */
 public class SimpleExecutor implements Executor{
+    Set<String> baseType = new HashSet<>();
+    {
+        baseType.add("String");
+        baseType.add("Integer");
+        baseType.add("Double");
+        baseType.add("Float");
+        baseType.add("Char");
+        baseType.add("Long");
+        baseType.add("Short");
+        baseType.add("Void");
+    }
     @Override
     public <T> List<T> query(Configuration configuration, MappedStatement mappedStatement, Object... params) throws Exception {
         //1.获取链接
@@ -33,16 +46,7 @@ public class SimpleExecutor implements Executor{
         //参数类型
         String paramType = mappedStatement.getParamType();
         Class<?> paramTypeClass = getClassType(paramType);
-        for (int i = 0; i < parameterMappings.size(); i++) {
-            ParameterMapping parameterMapping = parameterMappings.get(i);
-            //属性名
-            String content = parameterMapping.getContent();
-            Field declaredField = paramTypeClass.getDeclaredField(content);
-            //设置暴力访问
-            declaredField.setAccessible(true);
-            Object filedValue = declaredField.get(params[0]);
-            preparedStatement.setObject(i+1,filedValue);
-        }
+        setParamter(preparedStatement, parameterMappings, paramTypeClass, params);
         //5.执行SQL
         ResultSet resultSet = preparedStatement.executeQuery();
         String resultType = mappedStatement.getResultType();
@@ -67,9 +71,67 @@ public class SimpleExecutor implements Executor{
         return (List<T>)objects;
     }
 
+
+
+    @Override
+    public int update(Configuration configuration, MappedStatement mappedStatement, Object... params) throws Exception {
+        //1.获取链接
+        Connection connection = configuration.getDataSource().getConnection();
+        //2.获取SQL语句:sql : select * from user where id = #{id} and username=#{username}
+        String sql = mappedStatement.getSql();
+        BoundSql boundSql = getBoundSql(sql);
+        //3.获取预处理对象
+        PreparedStatement preparedStatement = connection.prepareStatement(boundSql.getSql());
+
+        //4.设置参数
+        List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
+        //参数类型
+        String paramType = mappedStatement.getParamType();
+        Class<?> paramTypeClass = getClassType(paramType);
+        boolean isBasePackage = baseType.contains(paramType);
+        if(paramTypeClass.isPrimitive()||isBasePackage){
+            //基本类型
+            for (int i = 0; i < parameterMappings.size(); i++) {
+                preparedStatement.setObject(i+1,params[i]);
+            }
+        }else{
+            //pojo
+            setParamter(preparedStatement, parameterMappings, paramTypeClass, params);
+        }
+        //5.执行SQL
+        int resultCount = preparedStatement.executeUpdate();
+
+        //6.返回
+        return resultCount;
+    }
+
+    private void setParamter(PreparedStatement preparedStatement, List<ParameterMapping> parameterMappings, Class<?> paramTypeClass, Object[] params) throws NoSuchFieldException, IllegalAccessException, SQLException {
+        for (int i = 0; i < parameterMappings.size(); i++) {
+            ParameterMapping parameterMapping = parameterMappings.get(i);
+            //属性名
+            String content = parameterMapping.getContent();
+            Field declaredField = paramTypeClass.getDeclaredField(content);
+            //设置暴力访问
+            declaredField.setAccessible(true);
+            Object filedValue = declaredField.get(params[0]);
+            preparedStatement.setObject(i+1,filedValue);
+        }
+    }
+
+
     private Class<?> getClassType(String classType) throws ClassNotFoundException {
         if(classType!=null){
-            Class<?> aClass = Class.forName(classType);
+            Class<?> aClass = null;
+            try {
+                aClass = Class.forName(classType);
+            } catch (ClassNotFoundException e) {
+                try {
+                    //基本类型
+                    aClass = Class.forName("java.lang."+classType);
+                } catch (ClassNotFoundException classNotFoundException) {
+                    throw  classNotFoundException;
+                }
+            }
             return aClass;
         }else{
             return null;

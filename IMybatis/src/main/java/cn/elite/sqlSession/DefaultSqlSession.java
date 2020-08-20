@@ -15,13 +15,14 @@ public class DefaultSqlSession implements SqlSession {
 
     private Configuration configuration;
 
+    Executor executor = new SimpleExecutor();
+
     public DefaultSqlSession(Configuration configuration) {
         this.configuration = configuration;
     }
 
     @Override
     public <E> List<E> selectList(String statementId, Object... params) throws Exception {
-        Executor executor = new SimpleExecutor();
         MappedStatement mappedStatement = configuration.getMappedStatementMap().get(statementId);
         return executor.query(configuration,mappedStatement,params);
     }
@@ -37,6 +38,24 @@ public class DefaultSqlSession implements SqlSession {
     }
 
     @Override
+    public int insert(String statementId, Object... params) throws Exception {
+        MappedStatement mappedStatement = configuration.getMappedStatementMap().get(statementId);
+        return executor.update(configuration,mappedStatement,params);
+    }
+
+    @Override
+    public int update(String statementId, Object... params) throws Exception {
+        MappedStatement mappedStatement = configuration.getMappedStatementMap().get(statementId);
+        return executor.update(configuration,mappedStatement,params);
+    }
+
+    @Override
+    public int delete(String statementId, Object... params) throws Exception {
+        MappedStatement mappedStatement = configuration.getMappedStatementMap().get(statementId);
+        return executor.update(configuration,mappedStatement,params);
+    }
+
+    @Override
     public <T> T getMapper(Class<?> mapperClass){
         return (T)Proxy.newProxyInstance(DefaultSqlSession.class.getClassLoader(), new Class[]{mapperClass}, new InvocationHandler() {
             @Override
@@ -47,16 +66,34 @@ public class DefaultSqlSession implements SqlSession {
                 //类全限定类名
                 String className = method.getDeclaringClass().getName();
                 String statementID = className+"."+methodName;
-                //准备参数
-                Type returnType = method.getGenericReturnType();
-                //返回值是否存在参数泛型 是:查找list 否:查找一个
-                if(returnType instanceof ParameterizedType){
-                    List<Object> objects = selectList(statementID, args);
-                    return objects;
+                MappedStatement mappedStatement = configuration.getMappedStatementMap().get(statementID);
+                //sql类型
+                String sqlCommandType = mappedStatement.getSqlCommandType();
+                switch (sqlCommandType){
+                    case "insert":
+                        return insert(statementID,args);
+                    case "update":
+                        return update(statementID,args);
+                    case "delete":
+                        return delete(statementID,args);
+                    case "select":
+                        return doQuery(method,statementID,args);
+                    default:
+                        doQuery(method,statementID,args);
                 }
-                return selectOne(statementID,args);
+                return doQuery(method, statementID,args);
             }
         });
+    }
+
+    private Object doQuery(Method method, String statementId, Object[] args) throws Exception {
+        //准备参数
+        Type returnType = method.getGenericReturnType();
+        //返回值是否存在参数泛型 是:查找list 否:查找一个
+        if(returnType instanceof ParameterizedType){
+            return selectList(statementId, args);
+        }
+        return selectOne(statementId, args);
     }
 
 }

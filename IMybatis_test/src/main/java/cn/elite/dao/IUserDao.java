@@ -22,4 +22,24 @@ public interface IUserDao {
      * @return
      */
     User findByCondition(User user);
+
+    /**
+     * 新增user
+     * @param user
+     * @return
+     */
+    int insert(User user);
+    /**
+     * 修改user
+     * @param user
+     * @return
+     */
+    int update(User user);
+
+    /**
+     * 删除user
+     * @param id
+     * @return
+     */
+    int delete(Integer id);
 }
